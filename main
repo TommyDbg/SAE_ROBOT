@@ -1,0 +1,80 @@
+#include "mbed.h"
+
+
+PwmOut motgauche(D6);
+PwmOut motdroite(D8);
+DigitalIn Jack(PTE20);
+DigitalIn fdc(PTE21);
+Timer timer1;
+
+AnalogIn capteur1(PTB1);//capteur extreme gauche
+AnalogIn capteur2(PTB2);//capteur gauche
+AnalogIn capteur3(PTB3);//capteur extreme droite
+AnalogIn capteur4(PTC2);//capteur droit
+
+
+int etat = 0;
+
+int main() {
+
+    double periode = 0.001,thg = periode*0.27,thd=periode*0.39;//temps haut des moteurs pour varier la vitesse
+    fdc.mode(PullUp);
+    Jack.mode(PullUp);
+    motgauche.period(periode);
+    motdroite.period(periode);
+
+    while(1){
+        switch(etat){
+
+            case 0:
+            motdroite.pulsewidth(0);//moteur éteint
+            motgauche.pulsewidth(0);
+            if(Jack.read()==1){
+                etat=1;
+            }
+            break;
+
+            case 1:
+            
+            //CONFETTIS
+            /*
+            motdroite.pulsewidth(thd);
+            motgauche.pulsewidth(thg);
+
+            if(capteur3.read()>=0.85 && capteur4.read()>=0.85){
+                etat = 2;
+            }*/
+            //SUIVIE DE LIGNE
+            
+            if(capteur2.read()>=0.52 && capteur4.read()<=0.45){//si capteur gauche capte + de noir on éteint moteur gauche et on accèlere moteur droit
+                motgauche.pulsewidth(periode*0.23);
+                motdroite.pulsewidth(periode*0.45);
+            }
+            else if(capteur4.read()>=0.52 && capteur2.read()<=0.45){
+                motdroite.pulsewidth(periode*0.30);
+                motgauche.pulsewidth(periode*0.35);
+            }
+            else{
+                motdroite.pulsewidth(thd);
+                motgauche.pulsewidth(thg);
+            }
+            
+            if(fdc.read()==0){
+                etat= 2;
+            }
+            break;
+
+            case 2:
+            motdroite.pulsewidth(0);
+            motgauche.pulsewidth(0);
+            if(Jack.read()==0){
+                etat=0;
+               
+            }
+            break;
+       
+           
+        }   
+        wait(0.01);
+    }
+}
